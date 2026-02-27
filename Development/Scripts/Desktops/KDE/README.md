@@ -46,18 +46,18 @@ Before executing this script, ensure you have:
 ___
 1. **Clone the repository:**  
    ```
-   git clone [https://github.com/YourUsername/Fedora-KDE-Post-Install.git](https://github.com/YourUsername/Fedora-KDE-Post-Install.git)  
-   cd Fedora-KDE-Post-Install
+   git clone 'https://github.com/MartinVonReichenberg/FEDORA.git' 
+   cd './FEDORA/Development/Scripts/Desktops/KDE/'
    ```
 
 2. **Make the script executable:**  
    ```
-   chmod +x ./FEDORA-KDE-DESKTOP--Post_Installation_Script.sh
+   chmod -v +x './FEDORA-KDE-DESKTOP--Post_Installation_Script.sh'
    ```
 
 3. **Execute the script:**  
    ```
-   sudo ./FEDORA-KDE-DESKTOP--Post_Installation_Script.sh
+   './FEDORA-KDE-DESKTOP--Post_Installation_Script.sh'
    ```
 
 4. **Follow the Prompts:**  
