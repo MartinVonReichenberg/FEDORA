@@ -609,8 +609,8 @@ echo ""
 # Install and Update additional Flatpak Applications:
 if ask_prompt "Install specific Flatpak Applications (ZapZap/WhatsApp, Termius SSH, YouTube Music, ProtonUp-Qt, VacuumTube)?"; then
     echo -e "${GREEN}Installing Flatpak Applications (ZapZap/WhatsApp, Termius SSH, YouTube Music, ProtonUp-Qt, VacuumTube):${NC}"
-    sudo flatpak update
-    sudo flatpak install \
+    sudo flatpak update  -y
+    sudo flatpak install -y \
         'app.ytmdesktop.ytmdesktop' 'com.rtosta.zapzap' 'com.termius.Termius' 'net.davidotek.pupgui2' 'rocks.shy.VacuumTube'
 else
     echo -e "${RED}Skipped Flatpak Applications.${NC}"
