@@ -447,13 +447,13 @@ fi
 echo ""
 #
 
-# KDE Desktop Utilities & Science:
-if ask_prompt "Install KDE Desktop Utilities & Science (Kate, Kleopatra, Stellarium)?"; then
-    echo -e "${GREEN}Installing KDE Desktop Utilities & Science:${NC}"
+# KDE Desktop Utilities + Extras & Science:
+if ask_prompt "Install KDE Desktop Utilities + Extras & Science (Kate, Kleopatra, Stellarium)?"; then
+    echo -e "${GREEN}Installing KDE Desktop Utilities + Extras & Science:${NC}"
     sudo dnf -y install --skip-unavailable \
-        'kate' 'kgpg' 'kleopatra' 'koi' 'stellarium'
+        'dolphin-plugins' 'kate' 'kgpg' 'kleopatra' 'koi' 'stellarium'
 else
-    echo -e "${RED}Skipped KDE Desktop Utilities & Science.${NC}"
+    echo -e "${RED}Skipped KDE Desktop Utilities + Extras & Science.${NC}"
 fi
 echo ""
 #
@@ -633,22 +633,33 @@ fi
 echo ""
 #
 
-# Add [backward-kill-subword] function for Fish shell:
-if ask_prompt "Add 'backward-kill-subword' function for Fish shell?"; then
-    sudo tee "/etc/fish/functions/backward-kill-subword.fish" <<EOF
-function backward-kill-subword
-    # Temporarily treat dots, slashes, dashes, and underscores as word separators
-    # This overrides the global setting just for this single execution
-    set -l fish_word_selection_characters "/.-_"
+# Configure precise sub-word deletion (Alt+Backspace / Ctrl+W) for Fish shell:
+if ask_prompt "Configure precise word deletion (Alt+Backspace / Ctrl+W) for Fish shell?"; then
+    echo -e "${GREEN}Configuring precise sub-word deletion for Fish shell...${NC}"
+    sudo mkdir -p /etc/fish/functions/ /etc/fish/conf.d/
 
-    # Execute the standard backward kill using the new separator rules
+    # 1. Create the custom deletion function
+    # By restricting the word characters to strictly alphanumeric values, we force Fish
+    # to treat all punctuation (including /-._*=@) as hard boundaries/separators.
+    sudo tee "/etc/fish/functions/backward-kill-subword.fish" >/dev/null <<EOF
+function backward-kill-subword
+    set -l fish_word_selection_characters "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     commandline -f backward-kill-word
 end
 EOF
+
+    # 2. Bind the function to keyboard shortcuts globally
+    sudo tee "/etc/fish/conf.d/99-custom-word-deletion.fish" >/dev/null <<EOF
+# Map standard deletion shortcuts to our custom sub-word logic.
+if status is-interactive
+    bind \e\x7f backward-kill-subword
+    bind \cw backward-kill-subword
+end
+EOF
     echo ""
-    echo -e "${CYAN}Added [backward-kill-subword.fish] function file into [/etc/fish/functions/] directory.${NC}"
+    echo -e "${CYAN}Added [backward-kill-subword.fish] and global keybindings into Fish configuration.${NC}"
 else
-    echo -e "${RED}Skipped adding 'backward-kill-subword' Fish shell function.${NC}"
+    echo -e "${RED}Skipped Fish word deletion configuration.${NC}"
 fi
 echo ""
 #
@@ -744,6 +755,18 @@ if ask_prompt "Update P-LOCATE Database (updatedb)?"; then
     echo -e "${GREEN}Updated P-LOCATE DATABASE [updatedb] ...${NC}"
 else
     echo -e "${RED}Skipped P-LOCATE Database update.${NC}"
+fi
+echo ""
+#
+
+# Create 'nogroup' system group for cross-distribution compatibility:
+if ask_prompt "Create 'nogroup' system group (GID 65534) for cross-distribution compatibility?"; then
+    echo -e "${GREEN}Creating 'nogroup' system group with ID 65534...${NC}"
+    # The -o flag is utilized to permit non-unique GIDs, as 65534 is already assigned to the 'nobody' group in Fedora.
+    sudo groupadd -o -g 65534 nogroup 2>/dev/null
+    echo -e "${CYAN}Successfully ensured 'nogroup' (GID 65534) exists for SUSE/Debian/Ubuntu compatibility.${NC}"
+else
+    echo -e "${RED}Skipped 'nogroup' system group creation.${NC}"
 fi
 echo ""
 #
