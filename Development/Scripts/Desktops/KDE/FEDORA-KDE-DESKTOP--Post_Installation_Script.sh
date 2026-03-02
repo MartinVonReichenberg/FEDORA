@@ -247,8 +247,18 @@ if ask_prompt "Install hardware accelerated codecs (AMD/INTEL/NVIDIA - ALL GPUs)
     echo ""
     # For ALL GPUs / AMD:
     echo -e "${BLUE}For ALL GPUs / AMD (Both 32-bit & 64-bit):${NC}"
-    sudo dnf -y swap "mesa-va-drivers.x86_64" "mesa-va-drivers-freeworld.x86_64"
-    sudo dnf -y swap "mesa-va-drivers.i686"   "mesa-va-drivers-freeworld.i686"
+    echo -e "${CYAN}Attempting to swap to freeworld codecs. Note: This may safely skip if RPM Fusion is temporarily out of sync with Fedora.${NC}"
+
+    # Wrap the swap commands in conditional statements to gracefully catch RPM Fusion sync lag
+    if ! sudo dnf -y swap "mesa-va-drivers.x86_64" "mesa-va-drivers-freeworld.x86_64" --allowerasing; then
+        echo -e "${YELLOW}Warning: RPM Fusion (x86_64) is currently out of sync with Fedora's latest Mesa updates.${NC}"
+        echo -e "${YELLOW}Safely retaining standard mesa-va-drivers.x86_64 to prevent system dependency breakage.${NC}"
+    fi
+
+    if ! sudo dnf -y swap "mesa-va-drivers.i686"   "mesa-va-drivers-freeworld.i686" --allowerasing; then
+        echo -e "${YELLOW}Warning: RPM Fusion (i686) is currently out of sync with Fedora's latest Mesa updates.${NC}"
+        echo -e "${YELLOW}Safely retaining standard mesa-va-drivers.i686 to prevent system dependency breakage.${NC}"
+    fi
     echo ""
     # For INTEL GPUs:
     echo -e "${BLUE}For INTEL GPUs (Both 32-bit & 64-bit):${NC}"
@@ -282,7 +292,7 @@ if ask_prompt "Install, configure and activate VirtualBox?"; then
 
     if [ "$TARGET_USER" = "root" ]; then
         echo -e "${YELLOW}Notice: Script is executing as the 'root' user.${NC}"
-        echo -e -n "${YELLOW}Please enter the specific home username to add to VirtualBox groups (or leave blank to skip): ${NC}"
+        echo -e -n "${YELLOW}Please enter the specific HOME username to add to VirtualBox groups (or leave blank to skip): ${NC}"
         read -r input_user
         if [ -z "$input_user" ]; then
             TARGET_USER=""
@@ -458,6 +468,27 @@ fi
 echo ""
 #
 
+# Transition from legacy SDDM to Plasma Login Manager:
+if ask_prompt "Transition from legacy SDDM to the new Plasma Login Manager?"; then
+    echo -e "${GREEN}Transitioning from SDDM to Plasma Login Manager:${NC}"
+
+    # 1. Guarantee the new Plasma Login Manager is installed first to avoid leaving the system without a Display Manager.
+    sudo dnf -y install --skip-unavailable 'plasma-login-manager'
+
+    # 2. Disable the legacy service and enable the newly provided plasmalogin service
+    sudo systemctl disable sddm.service 2>/dev/null || true
+    sudo systemctl enable plasmalogin.service
+
+    # 3. Cleanly remove the legacy SDDM packages
+    sudo dnf -y remove 'sddm' 'sddm-wayland-plasma'
+
+    echo -e "${CYAN}Successfully transitioned to Plasma Login Service and removed legacy SDDM packages.${NC}"
+else
+    echo -e "${RED}Skipped Plasma Login Manager transition.${NC}"
+fi
+echo ""
+#
+
 # Multimedia Codecs, Fonts & Media Players:
 if ask_prompt "Install specific Multimedia Codecs (x264, x265, GStreamer), Fonts & Players (VLC)?"; then
     echo -e "${GREEN}Installing Multimedia Codecs (x264, x265, GStreamer), Fonts & Media Players (VLC):${NC}"
@@ -609,7 +640,7 @@ echo ""
 # Install and Update additional Flatpak Applications:
 if ask_prompt "Install specific Flatpak Applications (ZapZap/WhatsApp, Termius SSH, YouTube Music, ProtonUp-Qt, VacuumTube)?"; then
     echo -e "${GREEN}Installing Flatpak Applications (ZapZap/WhatsApp, Termius SSH, YouTube Music, ProtonUp-Qt, VacuumTube):${NC}"
-    sudo flatpak update  -y
+    sudo flatpak update -y
     sudo flatpak install -y \
         'app.ytmdesktop.ytmdesktop' 'com.rtosta.zapzap' 'com.termius.Termius' 'net.davidotek.pupgui2' 'rocks.shy.VacuumTube'
 else
@@ -779,7 +810,7 @@ TARGET_USER="${SUDO_USER:-$USER}"
 
 if [ "$TARGET_USER" = "root" ]; then
     echo -e "${YELLOW}Notice: Script is executing as the 'root' user.${NC}"
-    echo -e -n "${YELLOW}Please enter the specific home username to add to recommended groups (or leave blank to skip): ${NC}"
+    echo -e -n "${YELLOW}Please enter the specific HOME username to add to recommended groups (or leave blank to skip): ${NC}"
     read -r input_user
     if [ -z "$input_user" ]; then
         TARGET_USER=""
