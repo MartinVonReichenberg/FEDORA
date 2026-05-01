@@ -79,6 +79,32 @@ echo ""
 #
 
 # ==============================================================================
+# OBS REPOSITORY MASKING MODULE (Fedora 42 -> 44+ / Rawhide Compatibility)
+# ==============================================================================
+# This module calculates the selected operating system version and safely clamps
+# the repository URL target to the maximum currently supported OBS environment.
+# ==============================================================================
+echo -e "${BLUE}🔍 Evaluating Fedora release version for OBS & Third-Party compatibility...${NC}"
+
+# Define the absolute maximum OBS target currently compiled and available
+MAX_OBS_VER=43
+
+# Execute the masking logic against the user's manual input
+# Note: 'Rawhide' now has native OBS repositories, so we only mask numeric versions > MAX_OBS_VER (like 44)
+if [[ "$releasever" != "Rawhide" ]] && [ "$releasever" -gt "$MAX_OBS_VER" ] 2>/dev/null; then
+    # The system is newer than the available OBS repositories (e.g., F44)
+    OBS_RELEASEVER="$MAX_OBS_VER"
+    echo -e "${YELLOW}⚠️ Notice: Bleeding-edge Fedora target ($releasever) detected without native OBS support yet.${NC}"
+    echo -e "${YELLOW}   Masking OBS & WineHQ repository targets to fallback version: Fedora ${OBS_RELEASEVER}.${NC}"
+else
+    # The system is perfectly aligned with existing OBS repositories (F42, F43, or Rawhide)
+    OBS_RELEASEVER="$releasever"
+    echo -e "${GREEN}✅ Native Fedora ${releasever} detected. OBS targets aligned.${NC}"
+fi
+echo ""
+# ==============================================================================
+
+# ==============================================================================
 # GLOBAL AUTO-ACCEPT PROMPT (Top of hierarchy)
 # ==============================================================================
 echo -e "${CYAN}==========================================================================================${NC}"
@@ -110,13 +136,13 @@ echo ""
 
 # Change/modify the password prompt timeout for the [sudo] command:
 if ask_prompt "Disable sudo password prompt timeout (Defaults timestamp_timeout=-1)?"; then
-    echo -e "${GREEN}Modifying sudo password prompt timeout (-1) to last until logout/reboot:${NC}"
+    echo -e "${GREEN}Modifying 'sudo' password prompt timeout (-1) to last until logout/reboot:${NC}"
     # Utilizing a drop-in file in /etc/sudoers.d/ is the safest programmatic alternative to manual 'visudo'
-    echo "Defaults timestamp_timeout=-1" | sudo tee "/etc/sudoers.d/99-disable-timeout" > /dev/null
+    echo "Defaults timestamp_timeout=-1" | sudo tee "/etc/sudoers.d/01-disable-timeout" > /dev/null
 
     # Strict 0440 permissions are mandatorily required by the sudoers system
-    sudo chmod 0440 "/etc/sudoers.d/99-disable-timeout"
-    echo -e "${CYAN}Wrote configuration options: [Defaults timestamp_timeout=-1] into: [/etc/sudoers.d/99-disable-timeout] file.${NC}"
+    sudo chmod 0440 "/etc/sudoers.d/01-disable-timeout"
+    echo -e "${CYAN}Wrote configuration options: [Defaults timestamp_timeout=-1] into: [/etc/sudoers.d/01-disable-timeout] file.${NC}"
 else
     echo -e "${RED}Skipped modifying sudo password prompt timeout.${NC}"
 fi
@@ -183,7 +209,7 @@ echo ""
 if ask_prompt "Install and enable Terra repository?"; then
     echo -e "${GREEN}Installing, enabling and setting up Terra repository Fedora 42+:${NC}"
     # Note: Using ${releasever,,} dynamically converts 'Rawhide' to 'rawhide' specifically for Terra's URL format.
-    sudo dnf -y install --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra${releasever,,}" "terra-release"
+    sudo dnf -y install --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra${releasever,,}" 'terra-release'
 else
     echo -e "${RED}Skipped Terra repository installation.${NC}"
 fi
@@ -221,9 +247,9 @@ echo ""
 #
 
 # Swap and switch to full-featured FFMPEG codecs:
-if ask_prompt "Swap ffmpeg-free for full-featured ffmpeg?"; then
+if ask_prompt "Swap 'ffmpeg-free' for full-featured 'ffmpeg-nonfree'?"; then
     echo -e "${GREEN}Swapping and switching to full-featured FFMPEG codecs:${NC}"
-    sudo dnf -y swap "ffmpeg-free" "ffmpeg" --allowerasing
+    sudo dnf -y swap 'ffmpeg-free' 'ffmpeg' --allowerasing
 else
     echo -e "${RED}Skipped FFMPEG swap.${NC}"
 fi
@@ -247,7 +273,7 @@ if ask_prompt "Install hardware accelerated codecs (AMD/INTEL/NVIDIA - ALL GPUs)
     echo ""
     # For ALL GPUs / AMD:
     echo -e "${BLUE}For ALL GPUs / AMD (Both 32-bit & 64-bit):${NC}"
-    echo -e "${CYAN}Attempting to swap to freeworld codecs. Note: This may safely skip if RPM Fusion is temporarily out of sync with Fedora.${NC}"
+    echo -e "${CYAN}Attempting to swap to 'freeworld' codecs. Note: This may safely skip if RPM Fusion is temporarily out of sync with Fedora.${NC}"
 
     # Wrap the swap commands in conditional statements to gracefully catch RPM Fusion sync lag
     if ! sudo dnf -y swap "mesa-va-drivers.x86_64" "mesa-va-drivers-freeworld.x86_64" --allowerasing; then
@@ -328,27 +354,27 @@ if ask_prompt "Would you like to add Open Build Service (OBS) HOME (from Martin 
 
     echo -e "${BLUE}Adding Custom BASE - SYSTEM Utilities Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Base:System/Fedora_$releasever/home:MartinVonReichenberg:Base:System.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Base:System/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:Base:System.repo"
 
     echo -e "${BLUE}Adding Custom NETWORK Programs & Utilities Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network/Fedora_$releasever/home:MartinVonReichenberg:network.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:network.repo"
 
     echo -e "${BLUE}Adding Customized qBitTorrent Program HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Network:qBittorrent/Fedora_$releasever/home:MartinVonReichenberg:Network:qBittorrent.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Network:qBittorrent/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:Network:qBittorrent.repo"
 
     echo -e "${BLUE}Adding Custom KDE Extra Applications Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:KDE:Extra/Fedora_$releasever/home:MartinVonReichenberg:KDE:Extra.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:KDE:Extra/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:KDE:Extra.repo"
 
     echo -e "${BLUE}Adding Custom GAMING Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:games:tools/Fedora_$releasever/home:MartinVonReichenberg:games:tools.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:games:tools/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:games:tools.repo"
 
     echo -e "${BLUE}Adding Custom HADWARE Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:branches:hardware/Fedora_$releasever/home:MartinVonReichenberg:branches:hardware.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:branches:hardware/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:branches:hardware.repo"
 else
     echo -e "${RED}Skipped OBS HOME (from Martin von Reichenberg) Repositories.${NC}"
 fi
@@ -358,9 +384,10 @@ echo ""
 # Add WINE (Wine H.Q.) Repository:
 if ask_prompt "Add WINE (Wine H.Q.) Repository?"; then
     echo -e "${GREEN}Adding WINE (Wine H.Q.) Repository:${NC}"
-    # Note: Using ${releasever,,} dynamically converts 'Rawhide' to 'rawhide' specifically for WineHQ's URL format.
+    # Utilizing the OBS_RELEASEVER masking variable to safely fall back to Fedora 43 for F44 installations,
+    # as WineHQ infrastructure traditionally mimics OBS provisioning delays.
     sudo dnf config-manager addrepo \
-        --from-repofile="https://dl.winehq.org/wine-builds/fedora/${releasever,,}/winehq.repo"
+        --from-repofile="https://dl.winehq.org/wine-builds/fedora/${OBS_RELEASEVER,,}/winehq.repo"
 else
     echo -e "${RED}Skipped WINE Repository addition.${NC}"
 fi
@@ -461,30 +488,9 @@ echo ""
 if ask_prompt "Install KDE Desktop Utilities + Extras & Science (Kate, Kleopatra, Stellarium)?"; then
     echo -e "${GREEN}Installing KDE Desktop Utilities + Extras & Science:${NC}"
     sudo dnf -y install --skip-unavailable \
-        'dolphin-plugins' 'kate' 'kgpg' 'kleopatra' 'koi' 'stellarium'
+        'dolphin-plugins' 'kate' 'kgpg' 'kleopatra' 'koi' 'peazip-qt6' 'stellarium'
 else
     echo -e "${RED}Skipped KDE Desktop Utilities + Extras & Science.${NC}"
-fi
-echo ""
-#
-
-# Transition from legacy SDDM to Plasma Login Manager:
-if ask_prompt "Transition from legacy SDDM to the new Plasma Login Manager?"; then
-    echo -e "${GREEN}Transitioning from SDDM to Plasma Login Manager:${NC}"
-
-    # 1. Guarantee the new Plasma Login Manager is installed first to avoid leaving the system without a Display Manager.
-    sudo dnf -y install --skip-unavailable 'plasma-login-manager'
-
-    # 2. Disable the legacy service and enable the newly provided plasmalogin service
-    sudo systemctl disable sddm.service 2>/dev/null || true
-    sudo systemctl enable plasmalogin.service
-
-    # 3. Cleanly remove the legacy SDDM packages
-    sudo dnf -y remove 'sddm' 'sddm-wayland-plasma'
-
-    echo -e "${CYAN}Successfully transitioned to Plasma Login Service and removed legacy SDDM packages.${NC}"
-else
-    echo -e "${RED}Skipped Plasma Login Manager transition.${NC}"
 fi
 echo ""
 #
@@ -500,7 +506,9 @@ if ask_prompt "Install specific Multimedia Codecs (x264, x265, GStreamer), Fonts
     # Including 32-bit requests for 'openh264' will cause a critical dummy 'noopenh264' stub conflict.
     # -------------------------------------------------------------------------------------------------------------------------
 
-    sudo dnf -y install --skip-unavailable \
+    # Added --skip-broken and --allowerasing to seamlessly handle Fedora 44 GStreamer 1.28+ obsoletion rules
+    # where gstreamer1-vaapi is merged into gstreamer1-plugins-bad-free.
+    sudo dnf -y install --skip-unavailable --skip-broken --allowerasing \
         gstreamer1.{i686,x86_64} gstreamer1-plugin-dav1d.{i686,x86_64} gstreamer1-plugin-fmp4.{i686,x86_64} \
         gstreamer1-plugin-gtk4.{i686,x86_64} gstreamer1-plugin-hsv.{i686,x86_64} gstreamer1-plugin-libav.{i686,x86_64} \
         gstreamer1-plugin-mp4.{i686,x86_64} gstreamer1-plugins-base.{i686,x86_64} gstreamer1-plugins-good.{i686,x86_64} \
@@ -519,9 +527,10 @@ echo ""
 if ask_prompt "Install System Fonts, Extra Fonts & Asian Language Support (Inter, Roboto, Hack Nerd, CJK)?"; then
     echo -e "${GREEN}Installing System Fonts & Asian Language Support:${NC}"
     sudo dnf -y install --skip-unavailable \
+        'adobe-source-serif-pro-fonts' \
         'google-noto-cjk-fonts' 'google-noto-color-emoji-fonts' 'google-noto-sans-cjk-fonts' 'google-noto-serif-cjk-fonts' \
-        'google-roboto-fonts' 'google-roboto-mono-fonts' 'hack-fonts' 'hack-nerd-fonts' 'liberation-fonts-all' \
-        'rsms-inter-fonts' 'rsms-inter-vf-fonts' 'vlgothic-fonts' 'wqy-microhei-fonts' 'wqy-zenhei-fonts'
+        'google-roboto-fonts' 'google-roboto-mono-fonts' 'hack-fonts' 'hack-nerd-fonts' 'jetbrains-mono-fonts-all' \
+        'liberation-fonts-all' 'rsms-inter-fonts' 'rsms-inter-vf-fonts' 'vlgothic-fonts' 'wqy-microhei-fonts' 'wqy-zenhei-fonts'
 else
     echo -e "${RED}Skipped System Fonts, Extra Fonts & Asian Language Support.${NC}"
 fi
@@ -590,8 +599,9 @@ else
     fi
     if [[ "$vpn_choice" == "zerotier" || "$vpn_choice" == "all" ]]; then
         echo -e "${GREEN}Adding Custom NETWORK VPN (ZeroTier) HOME Repository and installing ZeroTier:${NC}"
+        # The OBS Masking Variable is explicitly used here for the ZeroTier custom repository.
         sudo dnf config-manager addrepo \
-            --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network:vpn/Fedora_$releasever/home:MartinVonReichenberg:network:vpn.repo"
+            --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network:vpn/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:network:vpn.repo"
         sudo dnf -y install --skip-unavailable zerotier-one
         echo -e "${CYAN}Added ZeroTier HOME repository and installed packages.${NC}"
     fi
@@ -623,14 +633,12 @@ echo ""
 #
 
 # Direct Third-Party RPM URLs (Security & Utilities):
-if ask_prompt "Install Direct Third-Party RPMs (Bitwarden, Proton tools, Etcher)?"; then
-    echo -e "${GREEN}Installing Direct Third-Party RPMs:${NC}"
+if ask_prompt "Install Direct Third-Party RPMs (Bitwarden, Proton Mail, Etcher)?"; then
+    echo -e "${GREEN}Installing Direct Third-Party RPMs (Bitwarden, Balena Etcher, Proton Mail):${NC}"
     sudo dnf -y install --skip-unavailable \
+        "https://bitwarden.com/download/?app=desktop&platform=linux&variant=rpm" \
         "https://github.com/balena-io/etcher/releases/download/v2.1.4/balena-etcher-2.1.4-1.x86_64.rpm" \
-        "https://github.com/bitwarden/clients/releases/download/desktop-v2026.1.1/Bitwarden-2026.1.1-x86_64.rpm" \
-        "https://proton.me/download/authenticator/linux/ProtonAuthenticator-1.1.4-1.x86_64.rpm" \
-        "https://proton.me/download/mail/linux/1.12.1/ProtonMail-desktop-beta.rpm" \
-        "https://proton.me/download/pass/linux/proton-pass-1.34.2-1.x86_64.rpm"
+        "https://proton.me/download/mail/linux/1.13.0/ProtonMail-desktop-beta.rpm" \
 else
     echo -e "${RED}Skipped Direct Third-Party RPMs.${NC}"
 fi
@@ -645,6 +653,27 @@ if ask_prompt "Install specific Flatpak Applications (ZapZap/WhatsApp, Termius S
         'app.ytmdesktop.ytmdesktop' 'com.rtosta.zapzap' 'com.termius.Termius' 'net.davidotek.pupgui2' 'rocks.shy.VacuumTube'
 else
     echo -e "${RED}Skipped Flatpak Applications.${NC}"
+fi
+echo ""
+#
+
+# Transition from legacy SDDM to Plasma Login Manager:
+if ask_prompt "Transition from legacy SDDM to the new Plasma Login Manager?"; then
+    echo -e "${GREEN}Transitioning from SDDM to Plasma Login Manager:${NC}"
+
+    # 1. Guarantee the new Plasma Login Manager is installed first to avoid leaving the system without a Display Manager.
+    sudo dnf -y install --skip-unavailable 'plasma-login-manager'
+
+    # 2. Disable the legacy service and enable the newly provided plasmalogin service
+    sudo systemctl disable sddm.service 2>/dev/null || true
+    sudo systemctl enable plasmalogin.service
+
+    # 3. Cleanly remove the legacy SDDM packages
+    sudo dnf -y remove 'sddm' 'sddm-wayland-plasma'
+
+    echo -e "${CYAN}Successfully transitioned to Plasma Login Service and removed legacy SDDM packages.${NC}"
+else
+    echo -e "${RED}Skipped Plasma Login Manager transition.${NC}"
 fi
 echo ""
 #
@@ -667,7 +696,7 @@ echo ""
 # Configure precise sub-word deletion (Alt+Backspace / Ctrl+W) for Fish shell:
 if ask_prompt "Configure precise word deletion (Alt+Backspace / Ctrl+W) for Fish shell?"; then
     echo -e "${GREEN}Configuring precise sub-word deletion for Fish shell...${NC}"
-    sudo mkdir -p /etc/fish/functions/ /etc/fish/conf.d/
+    sudo mkdir -p '/etc/fish/functions/' '/etc/fish/conf.d/'
 
     # 1. Create the custom deletion function
     # By restricting the word characters to strictly alphanumeric values, we force Fish
@@ -680,7 +709,7 @@ end
 EOF
 
     # 2. Bind the function to keyboard shortcuts globally
-    sudo tee "/etc/fish/conf.d/99-custom-word-deletion.fish" >/dev/null <<EOF
+    sudo tee "/etc/fish/conf.d/01-custom-word-deletion.fish" >/dev/null <<EOF
 # Map standard deletion shortcuts to our custom sub-word logic.
 if status is-interactive
     bind \e\x7f backward-kill-subword
@@ -709,31 +738,30 @@ echo ""
 #
 
 # Disable Firewall SystemD Service:
-if ask_prompt "Disable Firewalld SystemD Service?"; then
+if ask_prompt "Disable FirewallD SystemD Service?"; then
     echo -e "${GREEN}Disabling Firewall SystemD Service:${NC}"
-    sudo systemctl disable --now "firewalld"
+    sudo systemctl disable --now 'firewalld'
 else
     echo -e "${RED}Skipped Firewalld disablement.${NC}"
 fi
 echo ""
 #
 
-# Set SELINUX from ENFORCING to PERMISSIVE using [setenforce] command:
-if ask_prompt "Set SELinux to PERMISSIVE mode?"; then
-    echo -e "${GREEN}Set SELINUX from ENFORCING to PERMISSIVE using [setenforce 0] command:${NC}"
-    sudo setenforce '0'
+# Disable SELINUX completely (Runtime & Permanent Boot Configuration):
+if ask_prompt "Permanently disable SELinux (Runtime + Persistent Boot Configuration)?"; then
+    echo -e "${GREEN}Setting SELinux from ENFORCING to PERMISSIVE for the current runtime session [setenforce 0]:${NC}"
+    # The 2>/dev/null masks an error if SELinux is already completely disabled in the kernel
+    sudo setenforce '0' 2>/dev/null || true
+
+    echo -e "${CYAN}Permanently disabling SELinux in the system configuration...${NC}"
+    sudo sed -i "s/^SELINUX=.*/SELINUX=disabled/" "/etc/selinux/config"
+    sudo grubby --update-kernel ALL --args selinux=0
+
+    echo -e "${GREEN}SELinux has been permanently disabled and will remain off after reboot.${NC}"
 else
-    echo -e "${RED}Skipped setting SELinux to Permissive.${NC}"
+    echo -e "${RED}Skipped SELinux permanent disablement.${NC}"
 fi
 echo ""
-#
-
-# FOR THOSE WHO WANT TO PERMANENTLY DISABLE SELINUX as it rather annoys than helps:
-# echo -e "${CYAN}Disabling annoying SELINUX ...${NC}"
-# sudo sed -i "s/^SELINUX=.*/SELINUX=disabled/" "/etc/selinux/config"
-# sudo grubby --update-kernel ALL --args selinux=0
-# echo -e "${GREEN}DONE${NC}"
-# echo ""
 #
 
 # Autoremove orphaned and unused packages:
@@ -823,13 +851,13 @@ if [ "$TARGET_USER" = "root" ]; then
 fi
 
 if [ -n "$TARGET_USER" ]; then
-    if ask_prompt "Add target user ($TARGET_USER) to recommended groups (audio, games, gamemode, users, video, wheel)?"; then
+    if ask_prompt "Add target user ($TARGET_USER) to recommended groups (audio, games, gamemode, users, $TARGET_USER, video, wheel)?"; then
         echo -e "${GREEN}Adding $TARGET_USER to recommended groups...${NC}"
-        sudo usermod -a -G 'audio,games,gamemode,users,video,wheel' "$TARGET_USER"
+        sudo usermod -a -G "audio,games,gamemode,users,$TARGET_USER,video,wheel" "$TARGET_USER"
         echo -e "${CYAN}Successfully added $TARGET_USER to groups.${NC}"
     else
         echo -e "${RED}Skipped adding $TARGET_USER to recommended groups.${NC}"
-        echo -e "${YELLOW}If you wish to do it manually later, issue: [sudo usermod -a -G 'audio,games,gamemode,users,video,wheel' $TARGET_USER]${NC}"
+        echo -e "${YELLOW}If you wish to do it manually later, issue: [sudo usermod -a -G 'audio,games,gamemode,users,$TARGET_USER,video,wheel' $TARGET_USER]${NC}"
     fi
 else
     echo -e "${RED}Skipped user group configuration phase due to invalid or unspecified target user.${NC}"
@@ -857,13 +885,13 @@ fi
 # FINAL REBOOT SEQUENCE
 # ==============================================================================
 if [ "$AUTO_ACCEPT_ALL" = true ]; then
-    # Unattended Mode: Visual 20-second abortable countdown
+    # Unattended Mode: Visual 60-second abortable countdown
     echo -e "${CYAN}==============================================================================${NC}"
     echo -e "${YELLOW}   All automated deployment tasks have concluded.${NC}"
     echo -e "${CYAN}==============================================================================${NC}"
 
     reboot_cancelled=false
-    for i in {20..1}; do
+    for i in {60..1}; do
         # \r returns carriage to the beginning of the line. \033[K clears to the end of the line.
         echo -e -n "\r\033[K${CYAN}Rebooting the system in ${YELLOW}${i}${CYAN} seconds... Press '${RED}N${CYAN}' to cancel, or [Enter] to reboot now: ${NC}"
 

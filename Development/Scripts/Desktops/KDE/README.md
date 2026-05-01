@@ -52,21 +52,21 @@ ___
    cd './FEDORA/Development/Scripts/Desktops/KDE/'
    ```
 
-2. **Make the script executable *(Optional)*:**  
+2. **Execute the script:**  
    ```
-   chmod -v +x './FEDORA-KDE-DESKTOP--Post_Installation_Script.sh'
-   ```
-
-3. **Execute the script:**  
-   ```
-   './FEDORA-KDE-DESKTOP--Post_Installation_Script.sh'
+   bash './FEDORA-KDE-DESKTOP--Post_Installation_Script.sh'
    ```
 
-4. **Follow the Prompts:**  
+3. **Follow the Prompts:**  
    * **Version Definition:** Type your Fedora version *(e.g.,* `42`, `43`, `44`, *or* `Rawhide`*)*.  
    * **Execution Mode:** Choose between Auto-Accept All *(*`A`*)* or Interactive Step-by-Step *(*`Y`*/*`N`*)*.  
    * **VPN Exception:** When prompted midway, select your specific VPN overlay *(*`N` _for_ **NetBird**, `T` _for_ **Tailscale**, `Z` _for_ **ZeroTier**, `A` _for_ **ALL**, _or simply hit_ `[Enter]` _to skip_*)*.  
 
+   <u>***NOTE:***</u>  
+   <u>***Ever since Fedora 44 Open Build Service repositories do not exist yet -***</u>  
+   <u>***All new installation of Fedora 44 will use 'masked' repositories from Fedora 43;***</u>  
+   <u>***This should not cause any major compatibility issues;***</u>  
+   <u>***Everything will be updated after it is going to be 'fixed' upstream within OBS . . .***</u>
 
 ## **🧰 Software Payload Categories**
 ___
@@ -80,8 +80,8 @@ If you choose the step-by-step interactive mode, you will be prompted to install
 * **Dedicated VPN Tools:** NetBird *(Upstream URL)*, Tailscale *(Official Fedora Repo)*, ZeroTier-One *(Custom OBS Repo)*.  
 * **Network & Internet Tools:** Web Browsers *(Chrome, Opera, Vivaldi)*, Messaging *(Telegram, Discord)*, Torrenting *(qBittorrent)*, Winbox *(MikroTik management)*.  
 * **System Utilities & CLI Tools:** Htop, Btop, Fish, Zypper, Bat, Micro, xclip.  
-* **Direct 3rd-Party RPMs:** Bitwarden Desktop, Proton Mail Beta, Proton Pass, Proton Authenticator, Balena Etcher.  
-* **Flatpak Applications:** YouTube Music Desktop, ZapZap *(WhatsApp)*, Termius SSH, ProtonUp-Qt.  
+* **Direct 3rd-Party RPMs:** Bitwarden Desktop, Proton Mail (BETA), Balena Etcher.  
+* **Flatpak Applications:** YouTube *(TV)*, YouTube Music Desktop, ZapZap *(WhatsApp)*, Termius SSH, ProtonUp-Qt.  
 
 
 ## **🧹 Maintenance & Finalization Phase**
@@ -93,7 +93,7 @@ At the conclusion of the software deployment, the script automatically transitio
 3. **Final System Refresh:** Executes a final `dnf upgrade --refresh` on the newly cleaned dependency tree.  
 4. **Firmware Updates:** Executes a full fwupdmgr refresh and update for UEFI-supported hardware.  
 5. **Database Syncing:** Updates SmartDriveDB and `updatedb` *(*`plocate`*)*.  
-6. **User Group Injection:** Validates the human user and appends required groups *(*`audio`, `games`, `gamemode`, `users`, `video`, `wheel`*)*.  
+6. **User Group Injection:** Validates the human user and appends required groups *(*`audio`, `games`, `gamemode`, `users`, `$USER`, `video`, `wheel`*)*.  
 7. **Graceful Reboot:** Initiates a dynamic 20-second abortable countdown *(in unattended mode)* to allow manual interruption before restarting the system to apply kernel and group changes.  
 
 
