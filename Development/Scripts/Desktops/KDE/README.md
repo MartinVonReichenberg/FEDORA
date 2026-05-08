@@ -19,7 +19,7 @@ ___
 
 ### **🛡 Intelligent Execution & Failsafes**
 
-* **Target User Validation *(Root vs. Sudo)*:** Whether executed via standard `sudo [./script.sh]` or directly within a pure root shell *(*`su -`*)*, the script intelligently traces the intended human user. It explicitly prevents the erroneous assignment of standard unprivileged groups (`audio`, `video`, `vboxusers`) to the system root account.  
+* **Target User Validation *(Root vs. Sudo)*:** Whether executed via standard `sudo [./script.sh]` or directly within a pure root shell *(*`su -`*)*, the script intelligently traces the intended human user. It explicitly prevents the erroneous assignment of standard unprivileged groups (`audio`, `games`, `gamemode`, `users`, `video`, `wheel`) to the system root account.  
 * **VPN Topology Safety Override:** Bypasses the "Auto-Accept All" master rule specifically for VPN deployment. It strictly pauses to force a mutually exclusive choice between NetBird, Tailscale, ZeroTier, or ALL, preventing automated routing table collisions and virtual network daemon bloat.  
 * **Architectural Codec Resolution:** Flawlessly resolves modern 64-bit *(*`x86_64`*)* vs. legacy 32-bit *(*`i686`*)* DNF dependency conflicts. It successfully provisions legacy 32-bit WINE/Proton GStreamer libraries without triggering dummy `noopenh264` stub conflicts against Cisco's modern 64-bit OpenH264 implementation.  
 * **Context-Aware Repository Syncing:** The DNF-to-Zypper repository synchronization (`/etc/zypp/repos.d/`) tracks script execution state and will safely skip itself if the required Zypper CLI tool was not installed in earlier prompts.  
@@ -62,11 +62,11 @@ ___
    * **Execution Mode:** Choose between Auto-Accept All *(*`A`*)* or Interactive Step-by-Step *(*`Y`*/*`N`*)*.  
    * **VPN Exception:** When prompted midway, select your specific VPN overlay *(*`N` _for_ **NetBird**, `T` _for_ **Tailscale**, `Z` _for_ **ZeroTier**, `A` _for_ **ALL**, _or simply hit_ `[Enter]` _to skip_*)*.  
 
-   <u>***NOTE:***</u>  
-   <u>***Ever since Fedora 44 Open Build Service repositories do not exist yet -***</u>  
-   <u>***All new installation of Fedora 44 will use 'masked' repositories from Fedora 43;***</u>  
-   <u>***This should not cause any major compatibility issues;***</u>  
-   <u>***Everything will be updated after it is going to be 'fixed' upstream within OBS . . .***</u>
+<!--    <u>***NOTE:***</u>   -->
+<!--    <u>***Ever since Fedora 44 Open Build Service repositories do not exist yet -***</u>   -->
+<!--    <u>***All new installation of Fedora 44 will use 'masked' repositories from Fedora 43;***</u>   -->
+<!--    <u>***This should not cause any major compatibility issues;***</u>   -->
+<!--    <u>***Everything will be updated after it is going to be 'fixed' upstream within OBS . . .***</u> -->
 
 ## **🧰 Software Payload Categories**
 ___
@@ -101,7 +101,7 @@ At the conclusion of the software deployment, the script automatically transitio
 ___
 *Feel free to modify, re-edit, share, redistribute and provide feedback to this Bash script according to your needs and/or wishes.*
 
-*This script is not subjected to any license or to any form of restrictions; anything is allowed . . .*
+*This script is not subjected to any license **(UNLICENSE)** or to any form of restrictions; anything is allowed . . .*
 
 *Disclaimer:*   
 *This script significantly alters system-level configurations, repositories, and packages. While it is rigorously structured with extensive fail-safes, user-validation checks, and conditional logic, it is provided **"as is" without warranty of any kind**.*

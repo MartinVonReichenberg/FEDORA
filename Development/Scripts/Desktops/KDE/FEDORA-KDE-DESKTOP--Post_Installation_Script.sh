@@ -79,32 +79,6 @@ echo ""
 #
 
 # ==============================================================================
-# OBS REPOSITORY MASKING MODULE (Fedora 42 -> 44+ / Rawhide Compatibility)
-# ==============================================================================
-# This module calculates the selected operating system version and safely clamps
-# the repository URL target to the maximum currently supported OBS environment.
-# ==============================================================================
-echo -e "${BLUE}🔍 Evaluating Fedora release version for OBS & Third-Party compatibility...${NC}"
-
-# Define the absolute maximum OBS target currently compiled and available
-MAX_OBS_VER=43
-
-# Execute the masking logic against the user's manual input
-# Note: 'Rawhide' now has native OBS repositories, so we only mask numeric versions > MAX_OBS_VER (like 44)
-if [[ "$releasever" != "Rawhide" ]] && [ "$releasever" -gt "$MAX_OBS_VER" ] 2>/dev/null; then
-    # The system is newer than the available OBS repositories (e.g., F44)
-    OBS_RELEASEVER="$MAX_OBS_VER"
-    echo -e "${YELLOW}⚠️ Notice: Bleeding-edge Fedora target ($releasever) detected without native OBS support yet.${NC}"
-    echo -e "${YELLOW}   Masking OBS & WineHQ repository targets to fallback version: Fedora ${OBS_RELEASEVER}.${NC}"
-else
-    # The system is perfectly aligned with existing OBS repositories (F42, F43, or Rawhide)
-    OBS_RELEASEVER="$releasever"
-    echo -e "${GREEN}✅ Native Fedora ${releasever} detected. OBS targets aligned.${NC}"
-fi
-echo ""
-# ==============================================================================
-
-# ==============================================================================
 # GLOBAL AUTO-ACCEPT PROMPT (Top of hierarchy)
 # ==============================================================================
 echo -e "${CYAN}==========================================================================================${NC}"
@@ -354,27 +328,27 @@ if ask_prompt "Would you like to add Open Build Service (OBS) HOME (from Martin 
 
     echo -e "${BLUE}Adding Custom BASE - SYSTEM Utilities Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Base:System/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:Base:System.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Base:System/Fedora_$releasever/home:MartinVonReichenberg:Base:System.repo"
 
     echo -e "${BLUE}Adding Custom NETWORK Programs & Utilities Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:network.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network/Fedora_$releasever/home:MartinVonReichenberg:network.repo"
 
     echo -e "${BLUE}Adding Customized qBitTorrent Program HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Network:qBittorrent/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:Network:qBittorrent.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:Network:qBittorrent/Fedora_$releasever/home:MartinVonReichenberg:Network:qBittorrent.repo"
 
     echo -e "${BLUE}Adding Custom KDE Extra Applications Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:KDE:Extra/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:KDE:Extra.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:KDE:Extra/Fedora_$releasever/home:MartinVonReichenberg:KDE:Extra.repo"
 
     echo -e "${BLUE}Adding Custom GAMING Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:games:tools/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:games:tools.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:games:tools/Fedora_$releasever/home:MartinVonReichenberg:games:tools.repo"
 
     echo -e "${BLUE}Adding Custom HADWARE Packages HOME (Martin von Reichenberg) Repository:${NC}"
     sudo dnf config-manager addrepo \
-        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:branches:hardware/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:branches:hardware.repo"
+        --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:branches:hardware/Fedora_$releasever/home:MartinVonReichenberg:branches:hardware.repo"
 else
     echo -e "${RED}Skipped OBS HOME (from Martin von Reichenberg) Repositories.${NC}"
 fi
@@ -384,10 +358,8 @@ echo ""
 # Add WINE (Wine H.Q.) Repository:
 if ask_prompt "Add WINE (Wine H.Q.) Repository?"; then
     echo -e "${GREEN}Adding WINE (Wine H.Q.) Repository:${NC}"
-    # Utilizing the OBS_RELEASEVER masking variable to safely fall back to Fedora 43 for F44 installations,
-    # as WineHQ infrastructure traditionally mimics OBS provisioning delays.
     sudo dnf config-manager addrepo \
-        --from-repofile="https://dl.winehq.org/wine-builds/fedora/${OBS_RELEASEVER,,}/winehq.repo"
+        --from-repofile="https://dl.winehq.org/wine-builds/fedora/${releasever,,}/winehq.repo"
 else
     echo -e "${RED}Skipped WINE Repository addition.${NC}"
 fi
@@ -462,11 +434,13 @@ sudo dnf -y upgrade --refresh
 echo ""
 
 # Development & Build Tools:
-if ask_prompt "Install Development & Build Tools (OBS tools, LSPs, formatters, kernel headers)?"; then
+if ask_prompt "Install Development & Build Tools (OBS tools, FEDORA Repository GPG Keys, LSPs, formatters, kernel headers)?"; then
     echo -e "${GREEN}Installing Development & Build Tools:${NC}"
     sudo dnf -y install --skip-unavailable \
+        'fedora-repos-rawhide' \
         'bash-language-server' 'gh' 'kernel-devel' 'kernel-devel-matched' "obs-build*" "obs-service*" "osc*" \
         'rpm-spec-language-server' 'shfmt'
+        sudo rpm --import "/etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-${releasever,,}-primary"
 else
     echo -e "${RED}Skipped Development & Build Tools.${NC}"
 fi
@@ -485,10 +459,10 @@ echo ""
 #
 
 # KDE Desktop Utilities + Extras & Science:
-if ask_prompt "Install KDE Desktop Utilities + Extras & Science (Kate, Kleopatra, Stellarium)?"; then
+if ask_prompt "Install KDE Desktop Utilities + Extras & Science (Kate, KGPG, PeaZip, Stellarium)?"; then
     echo -e "${GREEN}Installing KDE Desktop Utilities + Extras & Science:${NC}"
     sudo dnf -y install --skip-unavailable \
-        'dolphin-plugins' 'kate' 'kgpg' 'kleopatra' 'koi' 'peazip-qt6' 'stellarium'
+        'dolphin-plugins' 'kate' 'kgpg' 'koi' 'peazip-qt6' 'stellarium'
 else
     echo -e "${RED}Skipped KDE Desktop Utilities + Extras & Science.${NC}"
 fi
@@ -599,9 +573,8 @@ else
     fi
     if [[ "$vpn_choice" == "zerotier" || "$vpn_choice" == "all" ]]; then
         echo -e "${GREEN}Adding Custom NETWORK VPN (ZeroTier) HOME Repository and installing ZeroTier:${NC}"
-        # The OBS Masking Variable is explicitly used here for the ZeroTier custom repository.
         sudo dnf config-manager addrepo \
-            --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network:vpn/Fedora_$OBS_RELEASEVER/home:MartinVonReichenberg:network:vpn.repo"
+            --from-repofile="https://download.opensuse.org/repositories/home:MartinVonReichenberg:network:vpn/Fedora_$releasever/home:MartinVonReichenberg:network:vpn.repo"
         sudo dnf -y install --skip-unavailable zerotier-one
         echo -e "${CYAN}Added ZeroTier HOME repository and installed packages.${NC}"
     fi
@@ -638,7 +611,7 @@ if ask_prompt "Install Direct Third-Party RPMs (Bitwarden, Proton Mail, Etcher)?
     sudo dnf -y install --skip-unavailable \
         "https://bitwarden.com/download/?app=desktop&platform=linux&variant=rpm" \
         "https://github.com/balena-io/etcher/releases/download/v2.1.4/balena-etcher-2.1.4-1.x86_64.rpm" \
-        "https://proton.me/download/mail/linux/1.13.0/ProtonMail-desktop-beta.rpm" \
+        "https://proton.me/download/mail/linux/1.13.0/ProtonMail-desktop-beta.rpm"
 else
     echo -e "${RED}Skipped Direct Third-Party RPMs.${NC}"
 fi
@@ -774,6 +747,31 @@ fi
 echo ""
 #
 
+# Remove `/afs/` directory artifact from the top of the `/` hiearchy:
+if ask_prompt "Remove the obsolete '/afs/' directory artifact from the root '/' filesystem?"; then
+    echo -e "${GREEN}Removing the '/afs/' directory artifact...${NC}"
+    if [ -d "/afs" ]; then
+        sudo rm -fdr "/afs/"
+        echo -e "${CYAN}Successfully removed '/afs/' directory.${NC}"
+    else
+        echo -e "${YELLOW}The '/afs/' directory does not exist. Nothing to do.${NC}"
+    fi
+else
+    echo -e "${RED}Skipped '/afs/' directory artifact removal.${NC}"
+fi
+echo ""
+#
+
+# Refreshing & Upgrading the system once again:
+if ask_prompt "Refresh and Upgrade the system one final time?"; then
+    echo -e "${GREEN}Refreshing & Upgrading the system once again ...${NC}"
+    sudo dnf -y upgrade --refresh
+else
+    echo -e "${RED}Skipped final system upgrade.${NC}"
+fi
+echo ""
+#
+
 # Refreshing & Upgrading the system once again:
 if ask_prompt "Refresh and Upgrade the system one final time?"; then
     echo -e "${GREEN}Refreshing & Upgrading the system once again ...${NC}"
@@ -851,13 +849,13 @@ if [ "$TARGET_USER" = "root" ]; then
 fi
 
 if [ -n "$TARGET_USER" ]; then
-    if ask_prompt "Add target user ($TARGET_USER) to recommended groups (audio, games, gamemode, users, $TARGET_USER, video, wheel)?"; then
+    if ask_prompt "Add target user ($TARGET_USER) to recommended groups (audio, games, gamemode, users, video, wheel)?"; then
         echo -e "${GREEN}Adding $TARGET_USER to recommended groups...${NC}"
-        sudo usermod -a -G "audio,games,gamemode,users,$TARGET_USER,video,wheel" "$TARGET_USER"
+        sudo usermod -a -G 'audio,games,gamemode,users,video,wheel' "$TARGET_USER"
         echo -e "${CYAN}Successfully added $TARGET_USER to groups.${NC}"
     else
         echo -e "${RED}Skipped adding $TARGET_USER to recommended groups.${NC}"
-        echo -e "${YELLOW}If you wish to do it manually later, issue: [sudo usermod -a -G 'audio,games,gamemode,users,$TARGET_USER,video,wheel' $TARGET_USER]${NC}"
+        echo -e "${YELLOW}If you wish to do it manually later, issue: [sudo usermod -a -G 'audio,games,gamemode,users,video,wheel' $TARGET_USER]${NC}"
     fi
 else
     echo -e "${RED}Skipped user group configuration phase due to invalid or unspecified target user.${NC}"
